@@ -1,0 +1,12 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# replace STM32F412RGTx with your chip as listed in `probe-rs chip list`
+runner = "probe-rs run --chip STM32F412RGTx"
+
+[build]
+target = "thumbv7em-none-eabi"
+
+[env]
+DEFMT_LOG = "trace"
+
+[net]
+git-fetch-with-cli = true

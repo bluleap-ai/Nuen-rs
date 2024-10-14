@@ -1,21 +1,19 @@
 #![no_std]
 #![no_main]
 
-use defmt::*;
 use embassy_executor::{Executor, Spawner};
 use embassy_stm32::bind_interrupts;
 use embassy_stm32::can::{
-    Can, CanRx, CanTx, Frame, Rx0InterruptHandler, Rx1InterruptHandler, SceInterruptHandler,
-    StandardId, TxInterruptHandler,
+    Can, Frame, Rx0InterruptHandler, Rx1InterruptHandler, SceInterruptHandler, TxInterruptHandler,
 };
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::peripherals::CAN1;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
-use log::info;
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 
 mod io;
+mod tasks;
 use io::{BikeOutput, SwitchGearInput};
 
 pub enum SimulinkType {
@@ -43,94 +41,6 @@ bind_interrupts!(struct Irqs {
 });
 
 static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-
-#[embassy_executor::task]
-async fn state_machine_task(
-    sw_gear: SwitchGearInput,
-    mut bike_output: BikeOutput,
-    channel0: &'static ScreenBox,
-    channel1: &'static SimulinkBox,
-) {
-    loop {
-        // Check if receiving any data from other tasks.
-        if let Ok(data) = channel1.try_receive() {
-            match data {
-                SimulinkType::KeyFob(state) => {
-                    info!("Receive keyfob state {}", state);
-                }
-                SimulinkType::Can(frame) => {
-                    info!("Receive Can Frame {:?}", frame);
-                    channel0.send(ScreenRequest::LeftIndicator).await;
-                }
-            }
-        }
-
-        // Check SW gear input
-        sw_gear.print_all();
-
-        // Output
-        bike_output.set_all(false);
-    }
-}
-
-#[embassy_executor::task]
-async fn can_tx_task(mut tx: CanTx<'static>, channel: &'static ScreenBox) {
-    let mut i: u8 = 0;
-    loop {
-        match channel.receive().await {
-            ScreenRequest::LeftIndicator => {
-                info!("send LeftIndicator to screen");
-                if let Some(can_id) = StandardId::new(i as _) {
-                    if let Ok(tx_frame) = Frame::new_data(can_id, &[i]) {
-                        let status = tx.write(&tx_frame).await;
-                        info!(
-                            "Transmit OK - dequeue_frame: {:?} - MB: {:?}",
-                            status.dequeued_frame(),
-                            status.mailbox()
-                        );
-
-                        i = i.wrapping_add(1);
-                    } else {
-                        error!("Failed to parse Can Frame");
-                    }
-                } else {
-                    error!("Failed to parse Can ID");
-                }
-            }
-            ScreenRequest::RightIndicator => {
-                info!("send LeftIndicator to screen");
-            }
-            ScreenRequest::Speed(speed) => {
-                info!("send Speed {} to screen", speed);
-            }
-            ScreenRequest::Soc(soc) => {
-                info!("send SOC {} to screen", soc);
-            }
-            ScreenRequest::Abs(abs) => {
-                info!("send ABS {} to screen", abs);
-            }
-            ScreenRequest::HeadLight(on) => {
-                info!("send HeadLight {} to screen", on);
-            }
-        }
-    }
-}
-
-#[embassy_executor::task]
-async fn can_rx_task(mut rx: CanRx<'static>, channel: &'static SimulinkBox) {
-    match rx.read().await {
-        Ok(evelope) => {
-            info!("Receive CAN Frame {:?}", evelope);
-            channel.send(SimulinkType::Can(evelope.frame)).await;
-        }
-        Err(e) => {
-            error!("Failed to receive CAN Frame: {}", e);
-        }
-    }
-}
-
-#[embassy_executor::task]
-async fn keyfob_task(_channel: &'static SimulinkBox) {}
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -183,7 +93,7 @@ async fn main(spawner: Spawner) {
 
     // spawn state machine task on main executor.
     spawner
-        .spawn(state_machine_task(
+        .spawn(tasks::state_machine_task(
             sw_input,
             bike_output,
             channel1,
@@ -193,8 +103,7 @@ async fn main(spawner: Spawner) {
 
     // spawn CAN and keyfob task on lower priority executor.
     executor.run(|spawn| {
-        spawn.spawn(can_tx_task(can_tx, channel1)).unwrap();
-        spawn.spawn(can_rx_task(can_rx, channel0)).unwrap();
-        spawn.spawn(keyfob_task(channel0)).unwrap();
+        spawn.spawn(tasks::can_tx_task(can_tx, channel1)).unwrap();
+        spawn.spawn(tasks::can_rx_task(can_rx, channel0)).unwrap();
     });
 }

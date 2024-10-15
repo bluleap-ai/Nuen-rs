@@ -2,7 +2,8 @@ use crate::{
     io::{BikeOutput, SwitchGearInput},
     ScreenBox, ScreenRequest, SimulinkBox, SimulinkType,
 };
-use log::info;
+use defmt::*;
+use embassy_time::Timer;
 
 #[embassy_executor::task]
 pub async fn state_machine_task(
@@ -11,6 +12,7 @@ pub async fn state_machine_task(
     channel0: &'static ScreenBox,
     channel1: &'static SimulinkBox,
 ) {
+    info!("hello simulink!");
     loop {
         // Check if receiving any data from other tasks.
         if let Ok(data) = channel1.try_receive() {
@@ -25,6 +27,8 @@ pub async fn state_machine_task(
             }
         }
 
+        channel0.send(ScreenRequest::LeftIndicator).await;
+        Timer::after_millis(500).await;
         // Check SW gear input
         sw_gear.print_all();
 

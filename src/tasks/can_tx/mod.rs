@@ -1,10 +1,11 @@
 use crate::{ScreenBox, ScreenRequest};
+use defmt::*;
 use embassy_stm32::can::{CanTx, Frame, StandardId};
-use log::{error, info};
 
 #[embassy_executor::task]
 pub async fn can_tx_task(mut tx: CanTx<'static>, channel: &'static ScreenBox) {
     let mut i: u8 = 0;
+    info!("hello can tx!");
     loop {
         match channel.receive().await {
             ScreenRequest::LeftIndicator => {

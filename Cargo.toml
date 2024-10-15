@@ -10,7 +10,7 @@ embassy-stm32 = { version = "0.1.0", features = [
     "stm32f412rg",
     "unstable-pac",
     "memory-x",
-    "time-driver-any",
+    "time-driver-tim3",
     "exti",
     "chrono",
 ] }
@@ -50,14 +50,13 @@ micromath = "2.1.0"
 usbd-hid = "0.8.2"
 static_cell = "2"
 chrono = { version = "^0.4", default-features = false }
-log = "0.4.22"
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "3870411a4a4546f814140b178609a86d5209d734"}
-embassy-sync= { git = "https://github.com/embassy-rs/embassy.git", rev = "3870411a4a4546f814140b178609a86d5209d734"}
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "3870411a4a4546f814140b178609a86d5209d734"}
-embassy-time  = { git = "https://github.com/embassy-rs/embassy.git", rev = "3870411a4a4546f814140b178609a86d5209d734"}
-embassy-futures = { git = "https://github.com/embassy-rs/embassy.git", rev = "3870411a4a4546f814140b178609a86d5209d734"}
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "c84495ef2eb99580fea5392b2b3aff5ad66043a0"}
+embassy-sync= { git = "https://github.com/embassy-rs/embassy.git", rev = "c84495ef2eb99580fea5392b2b3aff5ad66043a0"}
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "c84495ef2eb99580fea5392b2b3aff5ad66043a0"}
+embassy-time  = { git = "https://github.com/embassy-rs/embassy.git", rev = "c84495ef2eb99580fea5392b2b3aff5ad66043a0"}
+embassy-futures = { git = "https://github.com/embassy-rs/embassy.git", rev = "c84495ef2eb99580fea5392b2b3aff5ad66043a0"}
 
 [profile.release]
 debug = 2

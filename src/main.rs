@@ -3,7 +3,7 @@
 
 use cortex_m_rt::entry;
 use defmt::*;
-use embassy_executor::{Executor, InterruptExecutor, Spawner};
+use embassy_executor::{Executor, InterruptExecutor};
 use embassy_stm32::{
     bind_interrupts,
     can::{
@@ -49,7 +49,12 @@ bind_interrupts!(struct Irqs {
 static EXECUTOR_HIGH: InterruptExecutor = InterruptExecutor::new();
 static EXECUTOR_LOW: StaticCell<Executor> = StaticCell::new();
 #[interrupt]
-unsafe fn SPI1() {
+unsafe fn USART3() {
+    EXECUTOR_HIGH.on_interrupt()
+}
+
+#[interrupt]
+unsafe fn USART2() {
     EXECUTOR_HIGH.on_interrupt()
 }
 
@@ -89,9 +94,9 @@ fn main() -> ! {
         turn_left_lamp: Output::new(p.PC14, Level::High, Speed::Low),
     };
 
-    // High-priority executor: SPI5, priority level 6
-    interrupt::SPI1.set_priority(Priority::P6);
-    let high_prio_spawner = EXECUTOR_HIGH.start(interrupt::SPI1);
+    // High-priority executor: USART3, priority level 6
+    interrupt::USART3.set_priority(Priority::P6);
+    let high_prio_spawner = EXECUTOR_HIGH.start(interrupt::USART3);
 
     // Init 2 embassy channels to transfer data.
     static CHANNEL0: StaticCell<SimulinkBox> = StaticCell::new();
@@ -100,9 +105,12 @@ fn main() -> ! {
     let channel1 = &*CHANNEL1.init(Channel::new());
 
     // Initialize the CAN bus
-    let can = Can::new(p.CAN1, p.PA11, p.PA12, Irqs);
+    let mut can = Can::new(p.CAN1, p.PA11, p.PA12, Irqs);
+    can.modify_config().set_bitrate(250_000);
+    let (can_tx, can_rx) = can.split();
 
-    // spawn state machine task on main executor.
+    // spawn state machine task on high priority executor.
+    info!("Start State Machine task");
     high_prio_spawner
         .spawn(tasks::state_machine_task(
             sw_input,
@@ -111,29 +119,14 @@ fn main() -> ! {
             channel0,
         ))
         .unwrap();
-    info!("start executor");
-    // spawn CANTx and CANRx task on lower priority executor.
-    interrupt::SPI2.set_priority(Priority::P6);
+
+    // spawn CANTx and CANRx tasks on low priority executor.
+    info!("Start CANTx and CANRx task");
     let low_prio_spawner = EXECUTOR_LOW.init(Executor::new());
     low_prio_spawner.run(|spawner| {
         spawner
-            .spawn(init_executor(spawner, can, channel0, channel1))
+            .spawn(tasks::can_tx_task(can, can_tx, channel1))
             .unwrap();
+        spawner.spawn(tasks::can_rx_task(can_rx, channel0)).unwrap();
     });
-}
-#[embassy_executor::task]
-async fn init_executor(
-    spawner: Spawner,
-    mut can: Can<'static>,
-    channel0: &'static SimulinkBox,
-    channel1: &'static ScreenBox,
-) {
-    info!("hello executor");
-    can.modify_config()
-        .set_automatic_retransmit(true)
-        .set_bitrate(250_000);
-    can.enable().await;
-    let (can_tx, can_rx) = can.split();
-    spawner.spawn(tasks::can_tx_task(can_tx, channel1)).unwrap();
-    spawner.spawn(tasks::can_rx_task(can_rx, channel0)).unwrap();
 }

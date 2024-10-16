@@ -1,4 +1,4 @@
-use defmt::info;
+use defmt::*;
 use embassy_stm32::gpio::{Input, Output};
 
 pub struct SwitchGearInput {
@@ -178,7 +178,7 @@ impl SwitchGearInput {
     }
 
     pub fn print_all(&self) {
-        info!(
+        debug!(
             "SW_GEAR_STATUS: \n
                 \tkill_sw: {}\n
                 \tmode_sw: {}\n

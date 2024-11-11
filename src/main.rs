@@ -20,6 +20,7 @@ use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 mod display;
 mod io;
+mod state_machine;
 mod tasks;
 use io::{BikeOutput, SwitchGearInput};
 

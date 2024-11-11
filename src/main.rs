@@ -18,6 +18,7 @@ use embassy_stm32::{
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
+mod display;
 mod io;
 mod tasks;
 use io::{BikeOutput, SwitchGearInput};
@@ -61,7 +62,6 @@ unsafe fn USART2() {
 #[entry]
 fn main() -> ! {
     let p = embassy_stm32::init(Default::default());
-
     let sw_input = SwitchGearInput {
         kill_sw: Input::new(p.PA4, Pull::Up), // no kill sw
         mode_sw: Input::new(p.PA6, Pull::Up),
@@ -106,7 +106,7 @@ fn main() -> ! {
 
     // Initialize the CAN bus
     let mut can = Can::new(p.CAN1, p.PA11, p.PA12, Irqs);
-    can.modify_config().set_bitrate(250_000);
+    can.modify_config().set_bitrate(500_000);
     let (can_tx, can_rx) = can.split();
 
     // spawn state machine task on high priority executor.

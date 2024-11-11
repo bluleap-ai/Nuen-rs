@@ -3,12 +3,14 @@ pub struct CanMessage {
     pub data: [u8; 8],
 }
 
+#[allow(dead_code)]
 pub struct SegLcd {
     status_1: CanMessage,
     status_2: CanMessage,
     status_3: CanMessage,
 }
 
+#[allow(dead_code)]
 impl SegLcd {
     pub fn init() -> Self {
         let status_1 = CanMessage {

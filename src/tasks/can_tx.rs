@@ -3,7 +3,7 @@ use crate::{
     ScreenBox, ScreenRequest,
 };
 use defmt::*;
-use embassy_stm32::can::{filter::Mask32, Can, CanTx, ExtendedId, Fifo, Frame, StandardId};
+use embassy_stm32::can::{filter::Mask32, Can, CanTx, Fifo, Frame};
 
 impl From<CanMessage> for Frame {
     fn from(message: CanMessage) -> Self {
@@ -27,14 +27,11 @@ pub async fn can_tx_task(
         match channel.receive().await {
             ScreenRequest::LeftIndicator => {
                 info!("send LeftIndicator to screen");
-                if tx.is_idle() {
-                    tx.write(&display.left_ind_on().into()).await;
-                } else {
-                    warn!("The CAN bus is not idle");
-                }
+                tx.write(&display.left_ind_on().into()).await;
             }
             ScreenRequest::RightIndicator => {
                 info!("send LeftIndicator to screen");
+                tx.write(&display.right_ind_on().into()).await;
             }
             ScreenRequest::Speed(speed) => {
                 info!("send Speed {} to screen", speed);

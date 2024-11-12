@@ -4,6 +4,7 @@ use crate::{
     ScreenBox, ScreenRequest, SimulinkBox, SimulinkType,
 };
 use defmt::*;
+use embassy_time::Timer;
 
 #[embassy_executor::task]
 pub async fn state_machine_task(
@@ -13,6 +14,7 @@ pub async fn state_machine_task(
     channel1: &'static SimulinkBox,
 ) {
     let mut state_control = StateControl::init(sw_gear);
+    bike_output.set_all(false);
     info!("hello simulink!");
     loop {
         // Check if receiving any data from other tasks.
@@ -29,17 +31,21 @@ pub async fn state_machine_task(
         }
         // update state depends on current input
         let current_state = state_control.update();
-        info!("Current state is {}", current_state);
 
         // execute the specific task depending on current state
         match current_state {
             Vehiclestate::Lock => { /* do something in Lock state */ }
+            Vehiclestate::Parking => {
+                channel0.send(ScreenRequest::Power(true)).await;
+            }
             Vehiclestate::Unlock => { /* do something in Unlock state */ }
-            Vehiclestate::Riding => { /* do something in Riding state */ }
+            Vehiclestate::Riding => {
+                channel0.send(ScreenRequest::Ready).await;
+            }
+            Vehiclestate::PreRiding => { /* do something in PreRiding state */ }
             Vehiclestate::Charging => { /* do something in Charging state */ }
         }
 
-        // Output
-        bike_output.set_all(false);
+        Timer::after_millis(10).await;
     }
 }

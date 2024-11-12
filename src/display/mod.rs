@@ -32,6 +32,27 @@ impl SegLcd {
         }
     }
 
+    pub fn get_status_1(&self) -> CanMessage {
+        CanMessage {
+            id: self.status_1.id,
+            data: self.status_1.data,
+        }
+    }
+
+    pub fn get_status_2(&self) -> CanMessage {
+        CanMessage {
+            id: self.status_2.id,
+            data: self.status_2.data,
+        }
+    }
+
+    pub fn get_status_3(&self) -> CanMessage {
+        CanMessage {
+            id: self.status_3.id,
+            data: self.status_3.data,
+        }
+    }
+
     pub fn lcd_on(&mut self) -> CanMessage {
         self.status_1.data[1] |= 0x01;
         CanMessage {

@@ -18,13 +18,27 @@ pub async fn can_tx_task(
     channel: &'static ScreenBox,
 ) {
     let mut display = SegLcd::init();
-    display.lcd_on();
+
     can.enable().await;
     can.modify_filters()
         .enable_bank(0, Fifo::Fifo0, Mask32::accept_all());
+    tx.write(&display.get_status_1().into()).await;
+    tx.write(&display.get_status_2().into()).await;
+    tx.write(&display.get_status_3().into()).await;
     info!("hello can tx!");
     loop {
         match channel.receive().await {
+            ScreenRequest::Power(en) => {
+                info!("send LeftIndicator to screen");
+                if en {
+                    tx.write(&display.lcd_on().into()).await;
+                } else {
+                    tx.write(&display.lcd_off().into()).await;
+                }
+            }
+            ScreenRequest::Ready => {
+                tx.write(&display.rdy_on().into()).await;
+            }
             ScreenRequest::LeftIndicator => {
                 info!("send LeftIndicator to screen");
                 tx.write(&display.left_ind_on().into()).await;

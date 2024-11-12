@@ -30,8 +30,10 @@ pub enum SimulinkType {
 }
 
 pub enum ScreenRequest {
+    Power(bool),
     LeftIndicator,
     RightIndicator,
+    Ready,
     Speed(u8),
     Soc(u8),
     Abs(bool),
@@ -64,21 +66,21 @@ unsafe fn USART2() {
 fn main() -> ! {
     let p = embassy_stm32::init(Default::default());
     let sw_input = SwitchGearInput {
-        kill_sw: Input::new(p.PA4, Pull::Up), // no kill sw
-        mode_sw: Input::new(p.PA6, Pull::Up),
-        side_stand_sw: Input::new(p.PA1, Pull::Up),
-        reverse_sw: Input::new(p.PA7, Pull::Up),
-        horn_sw: Input::new(p.PB0, Pull::Up),
-        pha_cos_pw_sw: Input::new(p.PC4, Pull::Up),
-        pha_cos_sw: Input::new(p.PC5, Pull::Up),
-        left_braker_sw: Input::new(p.PA2, Pull::Up),
-        right_braker_sw: Input::new(p.PA3, Pull::Up),
-        keyfob_a_sw: Input::new(p.PC0, Pull::Up),
-        keyfob_b_sw: Input::new(p.PC1, Pull::Up),
-        keyfob_c_sw: Input::new(p.PC2, Pull::Up),
-        keyfob_d_sw: Input::new(p.PC3, Pull::Up),
-        turn_right_sw: Input::new(p.PA0, Pull::Up),
-        turn_left_sw: Input::new(p.PB1, Pull::Up),
+        kill_sw: Input::new(p.PA4, Pull::Down), // no kill sw
+        mode_sw: Input::new(p.PA6, Pull::Down),
+        side_stand_sw: Input::new(p.PA1, Pull::Down),
+        reverse_sw: Input::new(p.PA7, Pull::Down),
+        horn_sw: Input::new(p.PB0, Pull::Down),
+        pha_cos_pw_sw: Input::new(p.PC4, Pull::Down),
+        pha_cos_sw: Input::new(p.PC5, Pull::Down),
+        left_braker_sw: Input::new(p.PA2, Pull::Down),
+        right_braker_sw: Input::new(p.PA3, Pull::Down),
+        keyfob_a_sw: Input::new(p.PC0, Pull::Down),
+        keyfob_b_sw: Input::new(p.PC1, Pull::Down),
+        keyfob_c_sw: Input::new(p.PC2, Pull::Down),
+        keyfob_d_sw: Input::new(p.PC3, Pull::Down),
+        turn_right_sw: Input::new(p.PA0, Pull::Down),
+        turn_left_sw: Input::new(p.PB1, Pull::Down),
     };
 
     let bike_output = BikeOutput {

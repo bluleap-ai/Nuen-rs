@@ -1,5 +1,6 @@
 use crate::{
     io::{BikeOutput, SwitchGearInput},
+    println,
     state_machine::{StateControl, Vehiclestate},
     ScreenBox, ScreenRequest, SimulinkBox, SimulinkType,
 };
@@ -14,16 +15,16 @@ pub async fn state_machine_task(
 ) {
     let mut state_control = StateControl::init(sw_gear);
     bike_output.set_all(false);
-    // println!("hello simulink!");
+    println!("hello simulink!");
     loop {
         // Check if receiving any data from other tasks.
         if let Ok(rx) = channel1.try_receive() {
             match rx {
                 SimulinkType::KeyFob(state) => {
-                    // println!("Receive keyfob state {}", state);
+                    println!("Receive keyfob state {}", state);
                 }
                 SimulinkType::Can(frame) => {
-                    // println!("Receive Can Frame {:?}", frame);
+                    println!("Receive Can Frame {:?}", frame);
                     channel0.send(ScreenRequest::LeftIndicator).await;
                 }
             }

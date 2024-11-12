@@ -39,7 +39,6 @@ pub fn uart_tx(bytes: &[u8], len: usize) {
         let mut usart = UART.borrow(cs).borrow_mut();
         if let Some(uart) = usart.as_mut() {
             uart.blocking_write(&bytes[..len]).unwrap();
-            uart.blocking_flush().unwrap();
         }
     });
 }

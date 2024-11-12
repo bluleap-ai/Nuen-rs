@@ -3,7 +3,6 @@ use crate::{
     state_machine::{StateControl, Vehiclestate},
     ScreenBox, ScreenRequest, SimulinkBox, SimulinkType,
 };
-use defmt::*;
 use embassy_time::Timer;
 
 #[embassy_executor::task]
@@ -15,16 +14,16 @@ pub async fn state_machine_task(
 ) {
     let mut state_control = StateControl::init(sw_gear);
     bike_output.set_all(false);
-    info!("hello simulink!");
+    // println!("hello simulink!");
     loop {
         // Check if receiving any data from other tasks.
         if let Ok(rx) = channel1.try_receive() {
             match rx {
                 SimulinkType::KeyFob(state) => {
-                    info!("Receive keyfob state {}", state);
+                    // println!("Receive keyfob state {}", state);
                 }
                 SimulinkType::Can(frame) => {
-                    info!("Receive Can Frame {:?}", frame);
+                    // println!("Receive Can Frame {:?}", frame);
                     channel0.send(ScreenRequest::LeftIndicator).await;
                 }
             }

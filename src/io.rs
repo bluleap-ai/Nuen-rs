@@ -1,4 +1,4 @@
-// use defmt::*;
+use crate::println;
 use embassy_stm32::gpio::{Input, Output};
 
 pub struct SwitchGearInput {
@@ -178,38 +178,38 @@ impl SwitchGearInput {
     }
 
     pub fn print_all(&self) {
-        // println!(
-        //     "SW_GEAR_STATUS: \n
-        //         \tkill_sw: {}\n
-        //         \tmode_sw: {}\n
-        //         \tside_stand_sw: {}\n
-        //         \treverse_sw: {}\n
-        //         \thorn_sw: {}\n
-        //         \tpha_cos_power_sw: {}\n
-        //         \tpha_cos_sw: {}\n
-        //         \tleft_braker_sw: {}\n
-        //         \tright_braker_sw: {}\n
-        //         \tkeyfob_A_sw: {}\n
-        //         \tkeyfob_B_sw: {}\n
-        //         \tkeyfob_C_sw: {}\n
-        //         \tkeyfob_D_sw: {}\n
-        //         \tturn_right_sw: {}\n
-        //         \tturn_left_sw: {}\n",
-        //     self.kill_sw(),
-        //     self.mode_sw(),
-        //     self.ss_sw(),
-        //     self.rev_sw(),
-        //     self.horn_sw(),
-        //     self.pc_power_sw(),
-        //     self.pc_sw(),
-        //     self.lb_sw(),
-        //     self.rb_sw(),
-        //     self.kf_a_sw(),
-        //     self.kf_b_sw(),
-        //     self.kf_c_sw(),
-        //     self.kf_d_sw(),
-        //     self.turn_r_sw(),
-        //     self.turn_l_sw()
-        // )
+        println!(
+            "SW_GEAR_STATUS: \n
+                \tkill_sw: {}\n
+                \tmode_sw: {}\n
+                \tside_stand_sw: {}\n
+                \treverse_sw: {}\n
+                \thorn_sw: {}\n
+                \tpha_cos_power_sw: {}\n
+                \tpha_cos_sw: {}\n
+                \tleft_braker_sw: {}\n
+                \tright_braker_sw: {}\n
+                \tkeyfob_A_sw: {}\n
+                \tkeyfob_B_sw: {}\n
+                \tkeyfob_C_sw: {}\n
+                \tkeyfob_D_sw: {}\n
+                \tturn_right_sw: {}\n
+                \tturn_left_sw: {}\n",
+            self.kill_sw(),
+            self.mode_sw(),
+            self.ss_sw(),
+            self.rev_sw(),
+            self.horn_sw(),
+            self.pc_power_sw(),
+            self.pc_sw(),
+            self.lb_sw(),
+            self.rb_sw(),
+            self.kf_a_sw(),
+            self.kf_b_sw(),
+            self.kf_c_sw(),
+            self.kf_d_sw(),
+            self.turn_r_sw(),
+            self.turn_l_sw()
+        )
     }
 }

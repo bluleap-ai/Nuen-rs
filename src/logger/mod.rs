@@ -76,7 +76,7 @@ mod uart_printer {
     pub struct Printer;
     impl Printer {
         pub fn write_bytes_assume_cs(bytes: &[u8]) {
-            uart_tx(bytes);
+            uart_tx(bytes, bytes.len());
         }
 
         pub fn flush() {
@@ -87,5 +87,5 @@ mod uart_printer {
 
 #[inline]
 fn with<R>(f: impl FnOnce() -> R) -> R {
-    f()
+    return critical_section::with(|_| f());
 }

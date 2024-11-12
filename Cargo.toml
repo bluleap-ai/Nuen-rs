@@ -50,6 +50,7 @@ micromath = "2.1.0"
 usbd-hid = "0.8.2"
 static_cell = "2"
 chrono = { version = "^0.4", default-features = false }
+critical-section = "1.1.3"
 
 [patch.crates-io]
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "c84495ef2eb99580fea5392b2b3aff5ad66043a0"}

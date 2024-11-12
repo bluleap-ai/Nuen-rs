@@ -3,8 +3,9 @@
 
 use core::cell::RefCell;
 
-use cortex_m::interrupt::Mutex;
+use cortex_m::{interrupt::Mutex, peripheral::NVIC};
 use cortex_m_rt::entry;
+use defmt::panic;
 use embassy_executor::{Executor, InterruptExecutor};
 use embassy_stm32::{
     bind_interrupts,
@@ -20,7 +21,6 @@ use embassy_stm32::{
     usart::{Config, InterruptHandler, Uart},
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
-use embedded_io::Write;
 use panic_probe as _;
 use static_cell::StaticCell;
 mod display;
@@ -34,26 +34,23 @@ pub use logger::Printer;
 
 static UART: Mutex<RefCell<Option<Uart<'static, Blocking>>>> = Mutex::new(RefCell::new(None));
 
-#[no_mangle]
-pub extern "C" fn uart_tx(bytes: &[u8]) -> i32 {
+pub fn uart_tx(bytes: &[u8], len: usize) {
     cortex_m::interrupt::free(|cs| {
         let mut usart = UART.borrow(cs).borrow_mut();
-        if let Some(mut uart) = usart.take() {
-            let _ = uart.blocking_write(bytes);
+        if let Some(uart) = usart.as_mut() {
+            uart.blocking_write(&bytes[..len]).unwrap();
+            uart.blocking_flush().unwrap();
         }
     });
-    0
 }
 
-#[no_mangle]
-pub extern "C" fn uart_flush() -> i32 {
+pub fn uart_flush() {
     cortex_m::interrupt::free(|cs| {
         let mut usart = UART.borrow(cs).borrow_mut();
-        if let Some(mut uart) = usart.take() {
-            let _ = uart.flush();
+        if let Some(uart) = usart.as_mut() {
+            let _ = uart.blocking_flush();
         }
     });
-    0
 }
 
 pub enum SimulinkType {
@@ -138,7 +135,6 @@ fn main() -> ! {
     });
 
     // High-priority executor: USART3, priority level 6
-    interrupt::USART1.set_priority(Priority::P0);
     interrupt::USART3.set_priority(Priority::P6);
     let high_prio_spawner = EXECUTOR_HIGH.start(interrupt::USART3);
 
@@ -154,6 +150,7 @@ fn main() -> ! {
     let (can_tx, can_rx) = can.split();
 
     // spawn state machine task on high priority executor.
+    println!("hello everybody. welcome to embassy!\r");
     println!("Start State Machine task");
     high_prio_spawner
         .spawn(tasks::state_machine_task(

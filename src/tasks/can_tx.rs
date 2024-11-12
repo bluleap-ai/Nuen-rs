@@ -1,8 +1,8 @@
 use crate::{
-    display::{CanMessage, SegLcd},
-    println, ScreenBox, ScreenRequest,
+    display::{CanMessage, SegLcd}, println, tasks::CAN_TX_CYCLE, ScreenBox, ScreenRequest
 };
 use embassy_stm32::can::{filter::Mask32, Can, CanTx, Fifo, Frame};
+use embassy_time::{Instant, Timer};
 
 impl From<CanMessage> for Frame {
     fn from(message: CanMessage) -> Self {
@@ -26,6 +26,7 @@ pub async fn can_tx_task(
     tx.write(&display.get_status_3().into()).await;
     println!("hello can tx!");
     loop {
+        let start = Instant::now();
         match channel.receive().await {
             ScreenRequest::Power(en) => {
                 println!("send LeftIndicator to screen");
@@ -58,6 +59,13 @@ pub async fn can_tx_task(
             ScreenRequest::HeadLight(on) => {
                 println!("send HeadLight {} to screen", on);
             }
+        }
+
+        let ms = Instant::now().duration_since(start).as_millis();
+        if ms > CAN_TX_CYCLE {
+            println!("WARN: CanTx task done after {ms}ms > {CAN_TX_CYCLE}ms");
+        } else {
+            Timer::after_millis(CAN_TX_CYCLE - ms).await;
         }
     }
 }

@@ -1,8 +1,11 @@
 #![no_std]
 #![no_main]
 
+use core::cell::RefCell;
+
+use cortex_m::{interrupt::Mutex, peripheral::NVIC};
 use cortex_m_rt::entry;
-use defmt::*;
+use defmt::panic;
 use embassy_executor::{Executor, InterruptExecutor};
 use embassy_stm32::{
     bind_interrupts,
@@ -13,16 +16,41 @@ use embassy_stm32::{
     gpio::{Input, Level, Output, Pull, Speed},
     interrupt,
     interrupt::{InterruptExt, Priority},
-    peripherals::CAN1,
+    mode::Blocking,
+    peripherals::{CAN1, USART1},
+    usart::{Config, InterruptHandler, Uart},
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
+use panic_probe as _;
 use static_cell::StaticCell;
-use {defmt_rtt as _, panic_probe as _};
 mod display;
 mod io;
+mod logger;
 mod state_machine;
 mod tasks;
 use io::{BikeOutput, SwitchGearInput};
+
+pub use logger::Printer;
+
+static UART: Mutex<RefCell<Option<Uart<'static, Blocking>>>> = Mutex::new(RefCell::new(None));
+
+pub fn uart_tx(bytes: &[u8], len: usize) {
+    cortex_m::interrupt::free(|cs| {
+        let mut usart = UART.borrow(cs).borrow_mut();
+        if let Some(uart) = usart.as_mut() {
+            uart.blocking_write(&bytes[..len]).unwrap();
+        }
+    });
+}
+
+pub fn uart_flush() {
+    cortex_m::interrupt::free(|cs| {
+        let mut usart = UART.borrow(cs).borrow_mut();
+        if let Some(uart) = usart.as_mut() {
+            let _ = uart.blocking_flush();
+        }
+    });
+}
 
 pub enum SimulinkType {
     KeyFob(u8),
@@ -48,6 +76,7 @@ bind_interrupts!(struct Irqs {
     CAN1_RX1 => Rx1InterruptHandler<CAN1>;
     CAN1_SCE => SceInterruptHandler<CAN1>;
     CAN1_TX => TxInterruptHandler<CAN1>;
+    USART1 => InterruptHandler<USART1>;
 });
 
 static EXECUTOR_HIGH: InterruptExecutor = InterruptExecutor::new();
@@ -66,21 +95,21 @@ unsafe fn USART2() {
 fn main() -> ! {
     let p = embassy_stm32::init(Default::default());
     let sw_input = SwitchGearInput {
-        kill_sw: Input::new(p.PA4, Pull::Down), // no kill sw
-        mode_sw: Input::new(p.PA6, Pull::Down),
-        side_stand_sw: Input::new(p.PA1, Pull::Down),
-        reverse_sw: Input::new(p.PA7, Pull::Down),
-        horn_sw: Input::new(p.PB0, Pull::Down),
-        pha_cos_pw_sw: Input::new(p.PC4, Pull::Down),
-        pha_cos_sw: Input::new(p.PC5, Pull::Down),
-        left_braker_sw: Input::new(p.PA2, Pull::Down),
-        right_braker_sw: Input::new(p.PA3, Pull::Down),
-        keyfob_a_sw: Input::new(p.PC0, Pull::Down),
-        keyfob_b_sw: Input::new(p.PC1, Pull::Down),
-        keyfob_c_sw: Input::new(p.PC2, Pull::Down),
-        keyfob_d_sw: Input::new(p.PC3, Pull::Down),
-        turn_right_sw: Input::new(p.PA0, Pull::Down),
-        turn_left_sw: Input::new(p.PB1, Pull::Down),
+        kill_sw: Input::new(p.PA4, Pull::None), // no kill sw
+        mode_sw: Input::new(p.PA6, Pull::None),
+        side_stand_sw: Input::new(p.PA1, Pull::None),
+        reverse_sw: Input::new(p.PA7, Pull::None),
+        horn_sw: Input::new(p.PB0, Pull::None),
+        pha_cos_pw_sw: Input::new(p.PC4, Pull::None),
+        pha_cos_sw: Input::new(p.PC5, Pull::None),
+        left_braker_sw: Input::new(p.PA2, Pull::None),
+        right_braker_sw: Input::new(p.PA3, Pull::None),
+        keyfob_a_sw: Input::new(p.PC0, Pull::None),
+        keyfob_b_sw: Input::new(p.PC1, Pull::None),
+        keyfob_c_sw: Input::new(p.PC2, Pull::None),
+        keyfob_d_sw: Input::new(p.PC3, Pull::None),
+        turn_right_sw: Input::new(p.PA0, Pull::None),
+        turn_left_sw: Input::new(p.PB1, Pull::None),
     };
 
     let bike_output = BikeOutput {
@@ -96,6 +125,13 @@ fn main() -> ! {
         tail_lamp: Output::new(p.PC9, Level::High, Speed::Low),
         turn_left_lamp: Output::new(p.PB15, Level::High, Speed::Low),
     };
+
+    let config = Config::default();
+    let usart = Uart::new_blocking(p.USART1, p.PA10, p.PA9, config).unwrap();
+
+    cortex_m::interrupt::free(|cs| {
+        UART.borrow(cs).borrow_mut().replace(usart);
+    });
 
     // High-priority executor: USART3, priority level 6
     interrupt::USART3.set_priority(Priority::P6);
@@ -113,7 +149,8 @@ fn main() -> ! {
     let (can_tx, can_rx) = can.split();
 
     // spawn state machine task on high priority executor.
-    info!("Start State Machine task");
+    println!("hello everybody. welcome to embassy!\r");
+    println!("Start State Machine task");
     high_prio_spawner
         .spawn(tasks::state_machine_task(
             sw_input,
@@ -124,7 +161,7 @@ fn main() -> ! {
         .unwrap();
 
     // spawn CANTx and CANRx tasks on low priority executor.
-    info!("Start CANTx and CANRx task");
+    println!("Start CANTx and CANRx task");
     let low_prio_spawner = EXECUTOR_LOW.init(Executor::new());
     low_prio_spawner.run(|spawner| {
         spawner

@@ -1,6 +1,6 @@
 use crate::io::SwitchGearInput;
-use crate::println;
 use defmt::Format;
+use log::info;
 
 #[derive(Format)]
 pub enum Vehiclestate {
@@ -44,7 +44,7 @@ impl StateControl {
     fn handle_lock_state(&mut self) -> &Vehiclestate {
         // if keyfob B pressed --> parking state
         if self.input.kf_b_sw() {
-            println!("change state from Lock to Parking");
+            info!("change state from Lock to Parking");
             self.state = Vehiclestate::Parking;
         }
         &self.state
@@ -53,7 +53,7 @@ impl StateControl {
     fn handle_parking_state(&mut self) -> &Vehiclestate {
         // if keyfob B pressed --> parking state
         if !self.input.turn_r_sw() || !self.input.turn_l_sw() {
-            println!("change state from Parking to Unlock");
+            info!("change state from Parking to Unlock");
             self.state = Vehiclestate::Unlock;
         }
         &self.state
@@ -61,7 +61,7 @@ impl StateControl {
 
     fn handle_preriding_state(&mut self) -> &Vehiclestate {
         // check Pin, BMS, MC, OBC, MCU temperature < 50
-        println!("change state from Preriding to Riding");
+        info!("change state from Preriding to Riding");
         self.state = Vehiclestate::Riding;
         &self.state
     }
@@ -76,7 +76,7 @@ impl StateControl {
 
     fn handle_unlock_state(&mut self) -> &Vehiclestate {
         if self.input.ss_sw() {
-            println!("change state from Unlock to PreRiding");
+            info!("change state from Unlock to PreRiding");
             self.state = Vehiclestate::PreRiding;
         }
         &self.state

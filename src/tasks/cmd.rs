@@ -1,10 +1,11 @@
 use crate::{cmd::CommandLine, print, println};
 use embassy_stm32::{mode::Async, usart::UartRx};
 use heapless::Vec;
+use log::info;
 
 #[embassy_executor::task]
 pub async fn cmd_task(mut rx: UartRx<'static, Async>) {
-    println!("hello CMD task!");
+    info!("hello CMD task!");
     let mut cmd = init_command_line();
     let mut buffer = [0x00; 1];
     let mut vec_buffer: Vec<u8, 50> = Vec::new();
@@ -25,7 +26,7 @@ pub async fn cmd_task(mut rx: UartRx<'static, Async>) {
                     cmd.help_command();
                 }
             }
-            print!("\x1b[32mnuen-embassy >\x1b[0m ");
+            print!("\x1b[1;32mnuen-embassy >\x1b[0m ");
             vec_buffer.clear(); // Clear the command string for the next command
         } else if buffer[0] == 0x08 || buffer[0] == 127 {
             // process backspace character

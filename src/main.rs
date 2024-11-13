@@ -3,7 +3,7 @@
 
 use core::cell::RefCell;
 
-use cortex_m::{interrupt::Mutex, peripheral::NVIC};
+use cortex_m::interrupt::Mutex;
 use cortex_m_rt::entry;
 use embassy_executor::{Executor, InterruptExecutor};
 use embassy_stm32::{
@@ -15,11 +15,12 @@ use embassy_stm32::{
     gpio::{Input, Level, Output, Pull, Speed},
     interrupt,
     interrupt::{InterruptExt, Priority},
-    mode::{Async, Blocking},
+    mode::Async,
     peripherals::{CAN1, USART1},
     usart::{Config, InterruptHandler, Uart, UartTx},
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
+use logger::init_logger;
 use panic_probe as _;
 use static_cell::StaticCell;
 mod cmd;
@@ -30,7 +31,8 @@ mod state_machine;
 mod tasks;
 use io::{BikeOutput, SwitchGearInput};
 
-pub use logger::Printer;
+use log::info;
+use logger::Printer;
 
 static UART: Mutex<RefCell<Option<UartTx<'static, Async>>>> = Mutex::new(RefCell::new(None));
 
@@ -94,6 +96,9 @@ unsafe fn USART2() {
 #[entry]
 fn main() -> ! {
     let p = embassy_stm32::init(Default::default());
+    // init logger with filter level
+    init_logger(log::LevelFilter::Info);
+
     let sw_input = SwitchGearInput {
         kill_sw: Input::new(p.PA4, Pull::None), // no kill sw
         mode_sw: Input::new(p.PA6, Pull::None),
@@ -153,8 +158,8 @@ fn main() -> ! {
     let (can_tx, can_rx) = can.split();
 
     // spawn state machine task on high priority executor.
-    println!("hello everybody. welcome to embassy!\r");
-    println!("Start State Machine task");
+    info!("hello everybody. welcome to embassy!\r");
+    info!("Start State Machine task");
     high_prio_spawner
         .spawn(tasks::state_machine_task(
             sw_input,
@@ -166,7 +171,7 @@ fn main() -> ! {
     high_prio_spawner.spawn(tasks::cmd_task(usart_rx)).unwrap();
 
     // spawn CANTx and CANRx tasks on low priority executor.
-    println!("Start CANTx and CANRx task");
+    info!("Start CANTx and CANRx task");
     let low_prio_spawner = EXECUTOR_LOW.init(Executor::new());
     low_prio_spawner.run(|spawner| {
         spawner

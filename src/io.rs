@@ -1,5 +1,5 @@
-use crate::println;
 use embassy_stm32::gpio::{Input, Output};
+use log::info;
 
 pub struct SwitchGearInput {
     pub kill_sw: Input<'static>,
@@ -178,7 +178,7 @@ impl SwitchGearInput {
     }
 
     pub fn print_all(&self) {
-        println!(
+        info!(
             "SW_GEAR_STATUS: \n
                 \tkill_sw: {}\n
                 \tmode_sw: {}\n

@@ -1,11 +1,11 @@
 use crate::{
     io::{BikeOutput, SwitchGearInput},
-    println,
     state_machine::{StateControl, Vehiclestate},
     tasks::SIM_APP_CYCLE,
     ScreenBox, ScreenRequest, SimulinkBox, SimulinkType,
 };
 use embassy_time::{Instant, Timer};
+use log::{info, warn};
 
 #[embassy_executor::task]
 pub async fn state_machine_task(
@@ -16,17 +16,17 @@ pub async fn state_machine_task(
 ) {
     let mut state_control = StateControl::init(sw_gear);
     bike_output.set_all(false);
-    println!("hello simulink!");
+    info!("hello simulink!");
     loop {
         let start = Instant::now();
         // Check if receiving any data from other tasks.
         if let Ok(rx) = channel1.try_receive() {
             match rx {
                 SimulinkType::KeyFob(state) => {
-                    println!("Receive keyfob state {}", state);
+                    info!("Receive keyfob state {}", state);
                 }
                 SimulinkType::Can(frame) => {
-                    println!("Receive Can Frame {:?}", frame);
+                    info!("Receive Can Frame {:?}", frame);
                     channel0.send(ScreenRequest::LeftIndicator).await;
                 }
             }
@@ -50,7 +50,7 @@ pub async fn state_machine_task(
 
         let ms = Instant::now().duration_since(start).as_millis();
         if ms > SIM_APP_CYCLE {
-            println!("WARN: simapp task done after {ms}ms > {SIM_APP_CYCLE}ms");
+            warn!("Simapp task done after {ms}ms > {SIM_APP_CYCLE}ms");
         } else {
             Timer::after_millis(SIM_APP_CYCLE - ms).await;
         }

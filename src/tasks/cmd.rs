@@ -1,7 +1,7 @@
 use crate::{cmd::CommandLine, print, println};
 use embassy_stm32::{mode::Async, usart::UartRx};
 use heapless::Vec;
-use log::info;
+use log::{info, warn};
 
 #[embassy_executor::task]
 pub async fn cmd_task(mut rx: UartRx<'static, Async>) {
@@ -42,10 +42,16 @@ pub async fn cmd_task(mut rx: UartRx<'static, Async>) {
             print!("^C\n");
             vec_buffer.clear();
             print!("\x1b[1;32mnuen-embassy >\x1b[0m ");
-        } else {
+        } else if (buffer[0] as char).is_ascii_alphanumeric()
+            || (buffer[0] as char).is_ascii_punctuation()
+        {
             print!("{}", buffer[0] as char);
             // Append valid bytes to command string
-            let _ = vec_buffer.push(buffer[0]);
+            if vec_buffer.push(buffer[0]).is_err() {
+                warn!("The buffer of terminal is full");
+            }
+        } else {
+            /* do nothing */
         }
     }
 }

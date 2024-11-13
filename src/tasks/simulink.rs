@@ -1,5 +1,9 @@
 use crate::{
-    io::{BikeOutput, SwitchGearInput}, println, state_machine::{StateControl, Vehiclestate}, tasks::SIM_APP_CYCLE, ScreenBox, ScreenRequest, SimulinkBox, SimulinkType
+    io::{BikeOutput, SwitchGearInput},
+    println,
+    state_machine::{StateControl, Vehiclestate},
+    tasks::SIM_APP_CYCLE,
+    ScreenBox, ScreenRequest, SimulinkBox, SimulinkType,
 };
 use embassy_time::{Instant, Timer};
 
@@ -44,13 +48,10 @@ pub async fn state_machine_task(
             Vehiclestate::Charging => { /* do something in Charging state */ }
         }
 
-        Timer::after_millis(51).await;
-
         let ms = Instant::now().duration_since(start).as_millis();
         if ms > SIM_APP_CYCLE {
             println!("WARN: simapp task done after {ms}ms > {SIM_APP_CYCLE}ms");
         } else {
-
             Timer::after_millis(SIM_APP_CYCLE - ms).await;
         }
     }

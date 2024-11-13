@@ -17,12 +17,10 @@ pub async fn can_rx_task(mut rx: CanRx<'static>, channel: &'static SimulinkBox) 
             }
         }
 
-        
         let ms = Instant::now().duration_since(start).as_millis();
         if ms > CAN_RX_CYCLE {
             println!("WARN: CanRx task done after {ms}ms > {CAN_RX_CYCLE}ms");
         } else {
-
             Timer::after_millis(CAN_RX_CYCLE - ms).await;
         }
     }

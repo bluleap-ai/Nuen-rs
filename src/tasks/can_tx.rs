@@ -1,5 +1,8 @@
 use crate::{
-    display::{CanMessage, SegLcd}, println, tasks::CAN_TX_CYCLE, ScreenBox, ScreenRequest
+    display::{CanMessage, SegLcd},
+    println,
+    tasks::CAN_TX_CYCLE,
+    ScreenBox, ScreenRequest,
 };
 use embassy_stm32::can::{filter::Mask32, Can, CanTx, Fifo, Frame};
 use embassy_time::{Instant, Timer};

@@ -22,6 +22,7 @@ use embassy_stm32::{
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use panic_probe as _;
 use static_cell::StaticCell;
+mod cmd;
 mod display;
 mod io;
 mod logger;

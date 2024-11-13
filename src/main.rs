@@ -5,7 +5,6 @@ use core::cell::RefCell;
 
 use cortex_m::{interrupt::Mutex, peripheral::NVIC};
 use cortex_m_rt::entry;
-use defmt::panic;
 use embassy_executor::{Executor, InterruptExecutor};
 use embassy_stm32::{
     bind_interrupts,
@@ -16,9 +15,9 @@ use embassy_stm32::{
     gpio::{Input, Level, Output, Pull, Speed},
     interrupt,
     interrupt::{InterruptExt, Priority},
-    mode::Blocking,
+    mode::{Async, Blocking},
     peripherals::{CAN1, USART1},
-    usart::{Config, InterruptHandler, Uart},
+    usart::{Config, InterruptHandler, Uart, UartTx},
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use panic_probe as _;
@@ -32,7 +31,7 @@ use io::{BikeOutput, SwitchGearInput};
 
 pub use logger::Printer;
 
-static UART: Mutex<RefCell<Option<Uart<'static, Blocking>>>> = Mutex::new(RefCell::new(None));
+static UART: Mutex<RefCell<Option<UartTx<'static, Async>>>> = Mutex::new(RefCell::new(None));
 
 pub fn uart_tx(bytes: &[u8], len: usize) {
     cortex_m::interrupt::free(|cs| {
@@ -127,10 +126,14 @@ fn main() -> ! {
     };
 
     let config = Config::default();
-    let usart = Uart::new_blocking(p.USART1, p.PA10, p.PA9, config).unwrap();
+    let usart = Uart::new(
+        p.USART1, p.PA10, p.PA9, Irqs, p.DMA2_CH7, p.DMA2_CH5, config,
+    )
+    .unwrap();
+    let (usart_tx, usart_rx) = usart.split();
 
     cortex_m::interrupt::free(|cs| {
-        UART.borrow(cs).borrow_mut().replace(usart);
+        UART.borrow(cs).borrow_mut().replace(usart_tx);
     });
 
     // High-priority executor: USART3, priority level 6
@@ -159,6 +162,7 @@ fn main() -> ! {
             channel0,
         ))
         .unwrap();
+    high_prio_spawner.spawn(tasks::cmd_task(usart_rx)).unwrap();
 
     // spawn CANTx and CANRx tasks on low priority executor.
     println!("Start CANTx and CANRx task");

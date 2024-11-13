@@ -45,10 +45,14 @@ pub async fn cmd_task(mut rx: UartRx<'static, Async>) {
 fn init_command_line() -> CommandLine<'static> {
     let mut command_line = CommandLine::new();
     command_line.add_command("hello", "Say hello", |_| println!("xin chao ban"));
-    command_line.add_command("bye", "Say goodbye", |_| println!("tam biet ban"));
+    command_line.add_command("bye", "Say goodbye", say_good_bye);
     command_line.add_command("reset", "reset the board", |_| {
         println!("reset the board immediately !!!");
         cortex_m::peripheral::SCB::sys_reset();
     });
     command_line
+}
+
+fn say_good_bye(args: &[&str]) {
+    println!("tam biet ban!");
 }

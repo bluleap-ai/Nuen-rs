@@ -60,7 +60,7 @@ impl<'a> CommandLine<'a> {
     pub fn help_command(&self) {
         println!("List of available commands:");
         for cmd in self.list.iter() {
-            println!("\t{} - {}", cmd.name, cmd.description);
+            println!("\t{} \t {}", cmd.name, cmd.description);
         }
     }
 }

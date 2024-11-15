@@ -72,6 +72,9 @@ pub enum ScreenRequest {
 
 type ScreenBox = Channel<CriticalSectionRawMutex, ScreenRequest, 16>;
 type SimulinkBox = Channel<CriticalSectionRawMutex, SimulinkType, 16>;
+type CanObcBox = Channel<CriticalSectionRawMutex, Frame, 16>;
+type CanBmsBox = Channel<CriticalSectionRawMutex, Frame, 16>;
+type CanMotorBox = Channel<CriticalSectionRawMutex, Frame, 16>;
 
 bind_interrupts!(struct Irqs {
     CAN1_RX0 => Rx0InterruptHandler<CAN1>;
@@ -149,8 +152,15 @@ fn main() -> ! {
     // Init 2 embassy channels to transfer data.
     static CHANNEL0: StaticCell<SimulinkBox> = StaticCell::new();
     static CHANNEL1: StaticCell<ScreenBox> = StaticCell::new();
+    static CHANNEL2: StaticCell<CanBmsBox> = StaticCell::new();
+    static CHANNEL3: StaticCell<CanMotorBox> = StaticCell::new();
+    static CHANNEL4: StaticCell<CanObcBox> = StaticCell::new();
+
     let channel0 = &*CHANNEL0.init(Channel::new());
     let channel1 = &*CHANNEL1.init(Channel::new());
+    let channel2 = &*CHANNEL2.init(Channel::new());
+    let channel3 = &*CHANNEL3.init(Channel::new());
+    let channel4 = &*CHANNEL4.init(Channel::new());
 
     // Initialize the CAN bus
     let mut can = Can::new(p.CAN1, p.PA11, p.PA12, Irqs);
@@ -177,6 +187,13 @@ fn main() -> ! {
         spawner
             .spawn(tasks::can_tx_task(can, can_tx, channel1))
             .unwrap();
-        spawner.spawn(tasks::can_rx_task(can_rx, channel0)).unwrap();
+        spawner
+            .spawn(tasks::can_rx_task(
+                can_rx, channel0, channel2, channel3, channel4,
+            ))
+            .unwrap();
+        spawner.spawn(tasks::bms_task(channel2)).unwrap();
+        spawner.spawn(tasks::motor_task(channel3)).unwrap();
+        spawner.spawn(tasks::obc_task(channel4)).unwrap();
     });
 }
